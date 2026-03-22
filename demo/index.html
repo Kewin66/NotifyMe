@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NotifyMe – Setup Guide</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --indigo: #4f46e5;
+      --indigo-dark: #3730a3;
+      --indigo-light: #e0e7ff;
+      --green: #16a34a;
+      --slate: #64748b;
+      --surface: #f8fafc;
+      --white: #ffffff;
+      --border: #e2e8f0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #1e293b;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Slide container ── */
+    #deck {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      opacity: 0;
+      transform: translateX(60px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      pointer-events: none;
+    }
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: all;
+    }
+    .slide.exit {
+      opacity: 0;
+      transform: translateX(-60px);
+    }
+
+    .slide-inner {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 40px 48px;
+      max-width: 760px;
+      width: 100%;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+    }
+
+    /* ── Slide: Hero ── */
+    .hero-slide .slide-inner {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff;
+      text-align: center;
+      padding: 60px 48px;
+    }
+    .hero-logo { font-size: 52px; margin-bottom: 16px; }
+    .hero-title { font-size: 36px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 10px; }
+    .hero-sub { font-size: 17px; opacity: 0.85; max-width: 440px; margin: 0 auto 28px; line-height: 1.6; }
+    .hero-pill {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    /* ── Common ── */
+    .slide-num {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--indigo);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    h2 { font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    .sub { font-size: 14px; color: var(--slate); margin-bottom: 24px; line-height: 1.6; }
+
+    /* ── Steps list ── */
+    .steps { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .steps li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--indigo);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-text { font-size: 14px; line-height: 1.6; color: #334155; }
+    .step-text strong { color: #0f172a; }
+    .step-text code {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #4338ca;
+      font-family: monospace;
+    }
+
+    /* ── Mock UI ── */
+    .mock-browser {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .mock-bar {
+      background: #f1f5f9;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .mock-dots { display: flex; gap: 5px; }
+    .mock-dots span {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .mock-dots span:nth-child(1) { background: #f87171; }
+    .mock-dots span:nth-child(2) { background: #fbbf24; }
+    .mock-dots span:nth-child(3) { background: #34d399; }
+    .mock-url {
+      flex: 1;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--slate);
+    }
+
+    /* EmailJS mock form */
+    .ejs-form {
+      background: #fff;
+      padding: 20px 24px;
+    }
+    .ejs-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .ejs-header .logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--indigo);
+    }
+    .ejs-header .badge {
+      font-size: 10px;
+      background: var(--indigo-light);
+      color: var(--indigo-dark);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .ejs-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .ejs-label { font-size: 13px; font-weight: 500; color: #475569; }
+    .ejs-input {
+      padding: 7px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      color: #334155;
+      font-family: monospace;
+    }
+    .ejs-input.filled {
+      border-color: var(--indigo);
+      background: #fafaff;
+      color: var(--indigo-dark);
+    }
+    .ejs-btn {
+      margin-top: 8px;
+      padding: 8px 20px;
+      background: var(--indigo);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: default;
+    }
+    .ejs-saved {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--green);
+      margin-left: 12px;
+    }
+
+    /* Watch form mock */
+    .watch-form { background: #fff; padding: 20px 24px; }
+    .wf-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .wf-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .wf-label { font-size: 13px; font-weight: 500; color: #475569; }
+    .wf-input {
+      padding: 7px 10px;
+      border: 1.5px solid var(--indigo);
+      border-radius: 6px;
+      font-size: 13px;
+      color: #334155;
+      background: #fafaff;
+    }
+    .wf-btn {
+      margin-top: 10px;
+      padding: 8px 20px;
+      background: var(--indigo);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Popup mock */
+    .mock-popup {
+      width: 320px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+      margin: 20px auto 0;
+      border: 1px solid var(--border);
+    }
+    .popup-header {
+      background: var(--indigo);
+      color: #fff;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .popup-header span { font-size: 16px; }
+    .popup-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: #fff;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+    }
+    .dot.green { background: #22c55e; }
+    .dot.gray  { background: #94a3b8; }
+    .pop-url { font-size: 12px; font-weight: 500; color: var(--indigo-dark); }
+    .pop-meta { font-size: 11px; color: var(--slate); margin-top: 2px; }
+    .pop-match { font-size: 11px; font-weight: 600; color: var(--green); margin-top: 2px; }
+    .popup-footer {
+      background: #fff;
+      padding: 10px 14px;
+      border-top: 1px solid var(--border);
+    }
+    .popup-add-btn {
+      width: 100%;
+      padding: 7px;
+      background: var(--indigo);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Email preview */
+    .email-preview {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 20px;
+    }
+    .email-header {
+      background: #f8fafc;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .email-field { font-size: 12px; color: var(--slate); margin-bottom: 4px; }
+    .email-field strong { color: #334155; font-weight: 600; }
+    .email-subject { font-size: 15px; font-weight: 700; color: #0f172a; margin-top: 8px; }
+    .email-body {
+      padding: 16px 18px;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #334155;
+      font-family: monospace;
+      white-space: pre-wrap;
+      background: #fff;
+    }
+    .email-highlight { color: var(--green); font-weight: 600; }
+
+    /* ── Nav bar ── */
+    #nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      background: #1e293b;
+      border-top: 1px solid #334155;
+    }
+    #progress {
+      display: flex;
+      gap: 6px;
+    }
+    .pip {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #475569;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .pip.active { background: var(--indigo); transform: scale(1.3); }
+    .pip.done   { background: #6366f1; }
+
+    .nav-btn {
+      padding: 9px 22px;
+      border: none;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #prevBtn {
+      background: #334155;
+      color: #94a3b8;
+    }
+    #prevBtn:hover { background: #475569; color: #fff; }
+    #nextBtn {
+      background: var(--indigo);
+      color: #fff;
+    }
+    #nextBtn:hover { background: var(--indigo-dark); }
+    #nextBtn:disabled { background: #334155; color: #64748b; cursor: default; }
+
+    .slide-counter { font-size: 12px; color: #64748b; }
+
+    a { color: var(--indigo); }
+  </style>
+</head>
+<body>
+
+<div id="deck">
+
+  <!-- Slide 1: Hero -->
+  <div class="slide hero-slide active" data-index="0">
+    <div class="slide-inner">
+      <div class="hero-logo">🔔</div>
+      <div class="hero-title">NotifyMe</div>
+      <div class="hero-sub">Monitor any webpage. Get an email the moment your keywords appear.</div>
+      <div class="hero-pill">Chrome Extension · No backend · Free</div>
+    </div>
+  </div>
+
+  <!-- Slide 2: Install -->
+  <div class="slide" data-index="1">
+    <div class="slide-inner">
+      <div class="slide-num">Step 1 of 4</div>
+      <h2>Install the Extension</h2>
+      <p class="sub">Load the extension into Chrome in developer mode — no Chrome Web Store needed.</p>
+      <ul class="steps">
+        <li>
+          <div class="step-num">1</div>
+          <div class="step-text">Open Chrome and go to <code>chrome://extensions</code></div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div class="step-text">Toggle <strong>Developer mode</strong> on (top-right corner)</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div class="step-text">Click <strong>Load unpacked</strong> and select the <code>NotifyMe</code> folder</div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div class="step-text">Click the 🧩 puzzle icon in your toolbar and <strong>pin NotifyMe</strong></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 3: EmailJS Setup -->
+  <div class="slide" data-index="2">
+    <div class="slide-inner">
+      <div class="slide-num">Step 2 of 4</div>
+      <h2>Set Up Email (EmailJS)</h2>
+      <p class="sub">NotifyMe uses <a href="https://www.emailjs.com" target="_blank">EmailJS</a> — free, no backend needed. Get your 3 keys, then paste them below.</p>
+
+      <div class="mock-browser">
+        <div class="mock-bar">
+          <div class="mock-dots"><span></span><span></span><span></span></div>
+          <div class="mock-url">chrome-extension://…/options.html</div>
+        </div>
+        <div class="ejs-form">
+          <div class="ejs-header">
+            <div class="logo">NotifyMe</div>
+            <div class="badge">Email Configuration · EmailJS</div>
+          </div>
+          <div class="ejs-row">
+            <div class="ejs-label">Service ID</div>
+            <div class="ejs-input filled">service_ab12cd3</div>
+          </div>
+          <div class="ejs-row">
+            <div class="ejs-label">Template ID</div>
+            <div class="ejs-input filled">template_xyz9876</div>
+          </div>
+          <div class="ejs-row">
+            <div class="ejs-label">Public Key</div>
+            <div class="ejs-input filled">uXxXxXxXxXxXxXxXxX</div>
+          </div>
+          <div style="display:flex;align-items:center;margin-top:8px;">
+            <button class="ejs-btn">Save Email Config</button>
+            <span class="ejs-saved">✓ Saved!</span>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:#94a3b8;margin-top:14px;">
+        Get your keys at <strong>emailjs.com</strong> → Email Services → Templates → Account → API Keys.
+        Your template needs: <code>{{to_email}}</code> <code>{{subject}}</code> <code>{{message}}</code>
+      </p>
+    </div>
+  </div>
+
+  <!-- Slide 4: Add Watch -->
+  <div class="slide" data-index="3">
+    <div class="slide-inner">
+      <div class="slide-num">Step 3 of 4</div>
+      <h2>Add a Watch</h2>
+      <p class="sub">Tell NotifyMe what URL to monitor, which keywords to look for, and where to send the alert.</p>
+
+      <div class="mock-browser">
+        <div class="mock-bar">
+          <div class="mock-dots"><span></span><span></span><span></span></div>
+          <div class="mock-url">chrome-extension://…/options.html</div>
+        </div>
+        <div class="watch-form">
+          <div class="wf-section-title">Add New Watch</div>
+          <div class="wf-row">
+            <div class="wf-label">URL to Monitor</div>
+            <div class="wf-input">https://xchangenj.securecafe.com/…</div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">Keywords</div>
+            <div class="wf-input">soho, den, tribeca, loft</div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">Notify Email</div>
+            <div class="wf-input">kewinsrinath03@gmail.com</div>
+          </div>
+          <div class="wf-row">
+            <div class="wf-label">Interval (min)</div>
+            <div class="wf-input">30</div>
+          </div>
+          <button class="wf-btn">Add Watch</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: It works! -->
+  <div class="slide" data-index="4">
+    <div class="slide-inner">
+      <div class="slide-num">Step 4 of 4</div>
+      <h2>You're All Set!</h2>
+      <p class="sub">NotifyMe runs in the background. The popup shows live status — and you'll get an email the moment a keyword appears.</p>
+
+      <div class="mock-popup">
+        <div class="popup-header">
+          <span>NotifyMe</span>
+          <span>⚙</span>
+        </div>
+        <div class="popup-item">
+          <div class="dot green"></div>
+          <div>
+            <div class="pop-url">xchangenj.securecafe.com/…</div>
+            <div class="pop-meta">Checked 2m ago · every 30m</div>
+            <div class="pop-match">✓ Match found!</div>
+          </div>
+          <span style="margin-left:auto;color:#94a3b8;font-size:15px;">⏸</span>
+        </div>
+        <div class="popup-item">
+          <div class="dot gray"></div>
+          <div>
+            <div class="pop-url">example.com/jobs</div>
+            <div class="pop-meta">Checked 8m ago · every 60m</div>
+          </div>
+          <span style="margin-left:auto;color:#94a3b8;font-size:15px;">⏸</span>
+        </div>
+        <div class="popup-footer">
+          <button class="popup-add-btn">+ Add Watch</button>
+        </div>
+      </div>
+
+      <div class="email-preview" style="margin-top:18px;">
+        <div class="email-header">
+          <div class="email-field"><strong>From:</strong> notifications@emailjs.com</div>
+          <div class="email-field"><strong>To:</strong> kewinsrinath03@gmail.com</div>
+          <div class="email-subject">NotifyMe: match found on xchangenj.securecafe.com</div>
+        </div>
+        <div class="email-body">NotifyMe found your watched keywords on:
+https://xchangenj.securecafe.com/…
+
+<span class="email-highlight">Matched keywords: soho, den</span>
+
+Page snippet:
+Floor Plan: The Soho with Den — 3 Bedroom…
+Available Now · $3,800/mo · Apply Today</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<div id="nav">
+  <button class="nav-btn" id="prevBtn">← Back</button>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+    <div id="progress"></div>
+    <div class="slide-counter" id="slideCounter"></div>
+  </div>
+  <button class="nav-btn" id="nextBtn">Next →</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const pips   = document.getElementById('progress');
+  const counter = document.getElementById('slideCounter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  let current = 0;
+
+  // Build pips
+  slides.forEach((_, i) => {
+    const p = document.createElement('div');
+    p.className = 'pip' + (i === 0 ? ' active' : '');
+    p.addEventListener('click', () => goTo(i));
+    pips.appendChild(p);
+  });
+
+  function goTo(n) {
+    if (n < 0 || n >= slides.length) return;
+
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current].classList.remove('exit'), 400);
+
+    current = n;
+    slides[current].classList.add('active');
+
+    document.querySelectorAll('.pip').forEach((p, i) => {
+      p.className = 'pip' + (i === current ? ' active' : i < current ? ' done' : '');
+    });
+
+    counter.textContent = `${current + 1} / ${slides.length}`;
+    prevBtn.disabled = current === 0;
+    nextBtn.textContent = current === slides.length - 1 ? 'Done ✓' : 'Next →';
+    nextBtn.disabled = false;
+  }
+
+  prevBtn.addEventListener('click', () => goTo(current - 1));
+  nextBtn.addEventListener('click', () => {
+    if (current === slides.length - 1) window.close();
+    else goTo(current + 1);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(current + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goTo(current - 1);
+  });
+
+  goTo(0);
+</script>
+
+</body>
+</html>
