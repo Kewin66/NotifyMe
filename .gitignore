@@ -1,0 +1,5 @@
+# Chrome extension private key — NEVER commit this
+*.pem
+
+# macOS
+.DS_Store
