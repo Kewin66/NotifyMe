@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NotifyMe – Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <h1>NotifyMe</h1>
+      <p>Monitor any webpage and get email alerts when your keywords appear.</p>
+    </header>
+
+    <!-- EmailJS Config -->
+    <section id="emailSection">
+      <h2>Email Configuration <span class="badge">EmailJS</span></h2>
+      <p class="hint">
+        Sign up free at <a href="https://www.emailjs.com" target="_blank">emailjs.com</a>,
+        create an email service + template, then paste the IDs below.
+        Your template should include variables: <code>{{to_email}}</code>,
+        <code>{{subject}}</code>, <code>{{message}}</code>.
+      </p>
+      <div class="form-row">
+        <label>Service ID</label>
+        <input type="text" id="ejsServiceId" placeholder="service_xxxxxxx" />
+      </div>
+      <div class="form-row">
+        <label>Template ID</label>
+        <input type="text" id="ejsTemplateId" placeholder="template_xxxxxxx" />
+      </div>
+      <div class="form-row">
+        <label>Public Key</label>
+        <input type="text" id="ejsPublicKey" placeholder="xxxxxxxxxxxxxxxxxxxxxx" />
+      </div>
+      <div class="actions">
+        <button id="saveEmailjs" class="btn-primary">Save Email Config</button>
+        <span id="emailjsSaved" class="saved-msg"></span>
+      </div>
+    </section>
+
+    <!-- Add Watch -->
+    <section id="addSection">
+      <h2 id="formTitle">Add New Watch</h2>
+      <div class="form-row">
+        <label>URL to Monitor</label>
+        <input type="url" id="watchUrl" placeholder="https://example.com/page" />
+      </div>
+      <div class="form-row">
+        <label>Keywords <span class="hint-inline">(comma-separated — alert when ANY match)</span></label>
+        <input type="text" id="watchFilters" placeholder="available, in stock, open" />
+      </div>
+      <div class="form-row">
+        <label>Notify Email</label>
+        <input type="email" id="watchEmail" placeholder="you@example.com" />
+      </div>
+      <div class="form-row">
+        <label>Check Interval (minutes)</label>
+        <input type="number" id="watchInterval" value="30" min="1" max="1440" />
+      </div>
+      <input type="hidden" id="editId" />
+      <div class="actions">
+        <button id="saveWatch" class="btn-primary">Add Watch</button>
+        <button id="cancelEdit" class="btn-secondary" style="display:none">Cancel</button>
+        <span id="watchSaved" class="saved-msg"></span>
+      </div>
+    </section>
+
+    <!-- Watch List -->
+    <section id="listSection">
+      <h2>Active Watches</h2>
+      <div id="watchTable">
+        <p class="empty">No watches yet.</p>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

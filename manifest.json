@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "NotifyMe",
+  "description": "Monitor any webpage and get email alerts when your keywords appear",
+  "version": "1.0.0",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "NotifyMe"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
+}
