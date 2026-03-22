@@ -101,22 +101,10 @@ async function sendEmail(watch, matchedFilters, html) {
     return;
   }
 
-  const snippet = html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .slice(0, 800);
+  const pageText = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+  const checkedAt = new Date().toLocaleString();
 
-  const body = [
-    `NotifyMe found your watched keywords on:`,
-    `${watch.url}`,
-    ``,
-    `Matched keywords: ${matchedFilters.join(", ")}`,
-    ``,
-    `Page snippet:`,
-    snippet,
-    ``,
-    `Checked at: ${new Date().toLocaleString()}`,
-  ].join("\n");
+  const matchTable = buildMatchTable(watch, matchedFilters, pageText, checkedAt);
 
   await fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST",
@@ -126,15 +114,103 @@ async function sendEmail(watch, matchedFilters, html) {
       template_id: emailjs.templateId,
       user_id: emailjs.publicKey,
       template_params: {
-        to_email: watch.email,
-        subject: `NotifyMe: match found on ${new URL(watch.url).hostname}`,
-        message: body,
-        watch_url: watch.url,
+        to_email:         watch.email,
+        subject:          `NotifyMe: match found on ${new URL(watch.url).hostname}`,
+        watch_url:        watch.url,
         matched_keywords: matchedFilters.join(", "),
-        page_snippet: snippet,
+        checked_at:       checkedAt,
+        match_table:      matchTable,
       },
     }),
   });
+}
+
+// ── Build HTML match table ─────────────────────────────────────────────────
+
+function buildMatchTable(watch, matchedFilters, pageText, checkedAt) {
+  const textLower = pageText.toLowerCase();
+
+  // For each keyword, find up to 3 occurrences and extract surrounding context
+  const rows = [];
+  for (const keyword of matchedFilters) {
+    const kw = keyword.toLowerCase().trim();
+    let searchFrom = 0;
+    let count = 0;
+
+    while (count < 3) {
+      const idx = textLower.indexOf(kw, searchFrom);
+      if (idx === -1) break;
+
+      const start = Math.max(0, idx - 120);
+      const end   = Math.min(pageText.length, idx + kw.length + 120);
+      let context = pageText.slice(start, end).trim();
+
+      // Highlight the keyword in the context
+      const re = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+      context = context.replace(re, `<mark style="background:#fef08a;padding:0 2px;border-radius:3px;">$1</mark>`);
+
+      rows.push({ keyword, context });
+      searchFrom = idx + kw.length;
+      count++;
+    }
+  }
+
+  const tableRows = rows.map((r, i) => `
+    <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8fafc"};">
+      <td style="padding:10px 14px;border:1px solid #e2e8f0;white-space:nowrap;">
+        <span style="display:inline-block;background:#e0e7ff;color:#3730a3;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;">
+          ${r.keyword}
+        </span>
+      </td>
+      <td style="padding:10px 14px;border:1px solid #e2e8f0;font-size:13px;color:#334155;line-height:1.6;">
+        …${r.context}…
+      </td>
+    </tr>`).join("");
+
+  return `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:680px;">
+
+  <div style="background:#4f46e5;padding:20px 24px;border-radius:10px 10px 0 0;">
+    <h2 style="margin:0;color:#ffffff;font-size:18px;">🔔 NotifyMe Alert</h2>
+    <p style="margin:4px 0 0;color:#c7d2fe;font-size:13px;">Keywords detected on a watched page</p>
+  </div>
+
+  <div style="background:#f8fafc;padding:16px 24px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr>
+        <td style="padding:4px 0;color:#64748b;width:120px;">URL</td>
+        <td style="padding:4px 0;"><a href="${watch.url}" style="color:#4f46e5;">${watch.url}</a></td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;color:#64748b;">Keywords</td>
+        <td style="padding:4px 0;color:#1e293b;font-weight:600;">${matchedFilters.join(", ")}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;color:#64748b;">Checked at</td>
+        <td style="padding:4px 0;color:#1e293b;">${checkedAt}</td>
+      </tr>
+    </table>
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;">
+    <thead>
+      <tr style="background:#f1f5f9;">
+        <th style="padding:10px 14px;border:1px solid #e2e8f0;text-align:left;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Keyword</th>
+        <th style="padding:10px 14px;border:1px solid #e2e8f0;text-align:left;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Context on Page</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tableRows}
+    </tbody>
+  </table>
+
+  <div style="background:#f8fafc;padding:12px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;text-align:center;">
+    <a href="${watch.url}" style="display:inline-block;background:#4f46e5;color:#fff;padding:9px 22px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">
+      View Page →
+    </a>
+  </div>
+
+</div>`;
 }
 
 // ── Storage helpers ────────────────────────────────────────────────────────
