@@ -27,6 +27,7 @@ async function loadEmailjs() {
   document.getElementById("ejsServiceId").value  = emailjs.serviceId  || "";
   document.getElementById("ejsTemplateId").value = emailjs.templateId || "";
   document.getElementById("ejsPublicKey").value  = emailjs.publicKey  || "";
+  document.getElementById("testEmail").value     = emailjs.testEmail  || "";
 }
 
 document.getElementById("saveEmailjs").addEventListener("click", async () => {
@@ -34,10 +35,119 @@ document.getElementById("saveEmailjs").addEventListener("click", async () => {
     serviceId:  document.getElementById("ejsServiceId").value.trim(),
     templateId: document.getElementById("ejsTemplateId").value.trim(),
     publicKey:  document.getElementById("ejsPublicKey").value.trim(),
+    testEmail:  document.getElementById("testEmail").value.trim(),
   };
   await chrome.storage.sync.set({ emailjs });
   flash("emailjsSaved");
 });
+
+document.getElementById("sendTest").addEventListener("click", async () => {
+  const { emailjs = {} } = await chrome.storage.sync.get("emailjs");
+  const toEmail = document.getElementById("testEmail").value.trim();
+
+  if (!emailjs.serviceId || !emailjs.templateId || !emailjs.publicKey) {
+    alert("Please save your EmailJS config first.");
+    return;
+  }
+  if (!toEmail) {
+    alert("Enter a Test Email address above.");
+    return;
+  }
+
+  const btn = document.getElementById("sendTest");
+  btn.textContent = "Sending…";
+  btn.disabled = true;
+
+  const testWatch = { url: "https://example.com/test-page" };
+  const matchedFilters = ["test keyword", "notifyme"];
+  const checkedAt = new Date().toLocaleString();
+  const matchTable = buildTestMatchTable(testWatch, matchedFilters, checkedAt);
+
+  try {
+    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id: emailjs.serviceId,
+        template_id: emailjs.templateId,
+        user_id: emailjs.publicKey,
+        template_params: {
+          to_email:         toEmail,
+          subject:          "NotifyMe: Test Email",
+          watch_url:        testWatch.url,
+          matched_keywords: matchedFilters.join(", "),
+          checked_at:       checkedAt,
+          match_table:      matchTable,
+        },
+      }),
+    });
+
+    if (res.ok) {
+      flash("emailjsSaved", "Test email sent!");
+    } else {
+      const text = await res.text();
+      alert(`Failed to send: ${res.status} — ${text}`);
+    }
+  } catch (e) {
+    alert(`Error: ${e.message}`);
+  }
+
+  btn.textContent = "Send Test Email";
+  btn.disabled = false;
+});
+
+function buildTestMatchTable(watch, matchedFilters, checkedAt) {
+  const sampleContexts = {
+    "test keyword": "…this page contains a <mark style='background:#fef08a;padding:0 2px;border-radius:3px;'>test keyword</mark> to verify your NotifyMe email setup is working correctly…",
+    "notifyme":     "…<mark style='background:#fef08a;padding:0 2px;border-radius:3px;'>NotifyMe</mark> is monitoring this page and will alert you when real keywords are found…",
+  };
+
+  const tableRows = matchedFilters.map((kw, i) => `
+    <tr style="background:${i % 2 === 0 ? "#ffffff" : "#f8fafc"};">
+      <td style="padding:10px 14px;border:1px solid #e2e8f0;white-space:nowrap;">
+        <span style="display:inline-block;background:#e0e7ff;color:#3730a3;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;">${kw}</span>
+      </td>
+      <td style="padding:10px 14px;border:1px solid #e2e8f0;font-size:13px;color:#334155;line-height:1.6;">
+        ${sampleContexts[kw] || `…sample context for <mark style='background:#fef08a;padding:0 2px;border-radius:3px;'>${kw}</mark>…`}
+      </td>
+    </tr>`).join("");
+
+  return `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:680px;">
+  <div style="background:#4f46e5;padding:20px 24px;border-radius:10px 10px 0 0;">
+    <h2 style="margin:0;color:#ffffff;font-size:18px;">🔔 NotifyMe — Test Email</h2>
+    <p style="margin:4px 0 0;color:#c7d2fe;font-size:13px;">Your email configuration is working!</p>
+  </div>
+  <div style="background:#f8fafc;padding:16px 24px;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr>
+        <td style="padding:4px 0;color:#64748b;width:120px;">URL</td>
+        <td style="padding:4px 0;"><a href="${watch.url}" style="color:#4f46e5;">${watch.url}</a></td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;color:#64748b;">Keywords</td>
+        <td style="padding:4px 0;color:#1e293b;font-weight:600;">${matchedFilters.join(", ")}</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;color:#64748b;">Checked at</td>
+        <td style="padding:4px 0;color:#1e293b;">${checkedAt}</td>
+      </tr>
+    </table>
+  </div>
+  <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;">
+    <thead>
+      <tr style="background:#f1f5f9;">
+        <th style="padding:10px 14px;border:1px solid #e2e8f0;text-align:left;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Keyword</th>
+        <th style="padding:10px 14px;border:1px solid #e2e8f0;text-align:left;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Context on Page</th>
+      </tr>
+    </thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  <div style="background:#f8fafc;padding:12px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;text-align:center;">
+    <a href="${watch.url}" style="display:inline-block;background:#4f46e5;color:#fff;padding:9px 22px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;">View Page →</a>
+  </div>
+</div>`;
+}
 
 // ── Watch form ─────────────────────────────────────────────────────────────
 
